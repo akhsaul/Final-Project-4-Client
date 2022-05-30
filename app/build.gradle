@@ -4,8 +4,8 @@ plugins {
 }
 
 android {
-    compileSdk 31
-    compileSdkVersion 31
+    compileSdk 32
+    compileSdkVersion 32
 
     viewBinding{
         enabled true
@@ -15,8 +15,8 @@ android {
         applicationId "kelompok.tiga.app"
         minSdk 21
         minSdkVersion 21
-        targetSdk 31
-        targetSdkVersion 31
+        targetSdk 32
+        targetSdkVersion 32
         versionCode 1
         versionName "1.0"
 
@@ -56,25 +56,30 @@ android {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
     }
+    namespace 'kelompok.tiga.app'
 }
 
 dependencies {
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.2'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.13.2'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.13.2'
+    implementation "io.coil-kt:coil:2.1.0"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version"
     implementation 'androidx.activity:activity-ktx:1.4.0'
     implementation 'androidx.appcompat:appcompat:1.4.1'
     implementation 'androidx.core:core-ktx:1.7.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.3'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.4.1'
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.4.1"
     implementation "androidx.lifecycle:lifecycle-viewmodel-savedstate:2.4.1"
     implementation "androidx.lifecycle:lifecycle-livedata-ktx:2.4.1"
-    implementation 'androidx.navigation:navigation-compose:2.4.2'
+    implementation "androidx.navigation:navigation-compose:2.4.2"
     implementation "androidx.window:window:1.0.0"
     implementation "androidx.compose.runtime:runtime:$compose_version"
     implementation "androidx.compose.foundation:foundation-layout:$compose_version"
     implementation "androidx.compose.ui:ui:$compose_version"
     implementation "androidx.compose.ui:ui-tooling-preview:$compose_version"
-    implementation 'com.google.android.material:material:1.5.0'
+    implementation 'com.google.android.material:material:1.6.0'
 
     // Compose Material Design
     implementation "androidx.compose.material:material:$compose_version"
