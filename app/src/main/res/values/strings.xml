@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">Aplikasi Pengucapan Bahasa Inggris</string>
+    <string name="app_name">KaDoIn</string>
+    <string name="title_activity_main">KaDoIn</string>
 </resources>
