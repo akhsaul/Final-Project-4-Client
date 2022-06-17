@@ -84,7 +84,7 @@ class MyViewModel : ViewModel() {
                         is Resource.Success -> {
                             // if return state of success, then it should be has DATA
                             // kotlin always complain about null values
-                            val result = requireNotNull(state.data)
+                            val result = Singleton.require(state.data)
                             _msgResponse = result.msg
                             Log.i(TAG, "result is ${result.data}")
                             _data.emit(Resource.Success(result.data))

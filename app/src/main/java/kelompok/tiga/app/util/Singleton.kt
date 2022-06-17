@@ -7,7 +7,6 @@ import coil.ImageLoader
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import coil.util.DebugLogger
-import coil.util.Logger
 import kelompok.tiga.app.net.Connector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +24,31 @@ object Singleton {
         return require(imgLoader)
     }
 
+    @OptIn(ExperimentalContracts::class)
+    fun require(condition: Boolean) {
+        contract {
+            returns() implies condition
+        }
+        require(condition) {
+            "Failed requirement."
+        }
+    }
+
+    @OptIn(ExperimentalContracts::class)
+    fun require(condition: Boolean, message: () -> Any) {
+        contract {
+            returns() implies condition
+        }
+        if (!condition) {
+            throw IllegalArgumentException(message().toString())
+        }
+    }
+
+    @OptIn(ExperimentalContracts::class)
     fun <T> require(value: T?): T {
+        contract {
+            returns() implies (value != null)
+        }
         return require(value) {
             "Required value was null."
         }
@@ -36,11 +59,14 @@ object Singleton {
         contract {
             returns() implies (value != null)
         }
-
         return value ?: throw IllegalArgumentException(message().toString())
     }
 
+    @OptIn(ExperimentalContracts::class)
     fun <T> require(condition: Boolean, value: T): T {
+        contract {
+            returns() implies condition
+        }
         return require(condition, value) {
             "Failed requirement."
         }
@@ -64,8 +90,6 @@ object Singleton {
 
     fun init(context: Context) {
         coroutine.launch {
-            Connector.init(context)
-
             if (categoryList.isEmpty()
                 || imgLoader == null
             ) {
@@ -97,6 +121,9 @@ object Singleton {
                     Log.i(TAG, "Success synchronized $TAG")
                 }
             }
+        }
+        coroutine.launch {
+            Connector.init(context)
         }
     }
 }

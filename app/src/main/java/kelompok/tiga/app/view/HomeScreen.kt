@@ -93,7 +93,7 @@ fun HomeScreen(myViewModel: MyViewModel = viewModel()) {
                         }
                         // Bottom
                         ContentBottom(
-                            requireNotNull(result.data) {
+                            Singleton.require(result.data) {
                                 "Data is NULL"
                             },
                             myViewModel

@@ -69,7 +69,7 @@ class DetailViewModel : ViewModel() {
                 val result = MyRepository.getSoundPath(getData().sound)
                 result.onEach { resource ->
                     if (resource is Resource.Success) {
-                        uri = requireNotNull(resource.data)
+                        uri = Singleton.require(resource.data)
                     } else if (resource is Resource.Error) {
                         message = resource.message!!
                     }
@@ -100,15 +100,15 @@ class DetailViewModel : ViewModel() {
     }
 
     fun getData(): Content {
-        return requireNotNull(data)
+        return Singleton.require(data)
     }
 
     private fun getAudioManager(): AudioManager {
-        return requireNotNull(audioManager)
+        return Singleton.require(audioManager)
     }
 
     private fun getMediaPlayer(): MediaPlayer {
-        return requireNotNull(mediaPlayer)
+        return Singleton.require(mediaPlayer)
     }
 
     fun release() {

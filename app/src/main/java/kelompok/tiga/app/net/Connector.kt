@@ -123,13 +123,13 @@ object Connector {
         cacheDir = File(fixedDir, "cache").also { f ->
             f.mkdirs()
             // make sure we have permission
-            require(f.canRead() && f.canWrite())
+            Singleton.require(f.canRead() && f.canWrite())
             Log.e(TAG, f.absolutePath)
         }
         downloadDir = File(fixedDir, "download").also { f ->
             f.mkdirs()
             // make sure we have permission
-            require(f.canRead() && f.canWrite())
+            Singleton.require(f.canRead() && f.canWrite())
             Log.e(TAG, f.absolutePath)
         }
     }
