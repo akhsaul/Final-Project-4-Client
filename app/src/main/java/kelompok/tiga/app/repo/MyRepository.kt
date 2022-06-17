@@ -19,7 +19,8 @@ object MyRepository {
 
     fun getData(category: Category): Flow<Resource<Result>> = flow {
         val resultResponse = try {
-            val result = Connector.getApi.getListData(category.title)
+            val result = Connector.getAPI().getListData(category.title)
+            Log.i(TAG, "result is ${result.data}")
             Resource.Success(result)
         } catch (e: Exception) {
             Resource.Error(message = e.message ?: "[$TAG] Error in API")
@@ -40,7 +41,7 @@ object MyRepository {
             emit(Resource.Success(fileList[0].toUri()))
         } else {
             val result = runCatching {
-                val response = Connector.getApi.downloadSound(soundName)
+                val response = Connector.getAPI().downloadSound(soundName)
                 val fileOutput = File(Connector.getDownloadDir(), soundName)
                 if (response.isSuccessful) {
                     Resource.Success(consume(response.body()!!, fileOutput))

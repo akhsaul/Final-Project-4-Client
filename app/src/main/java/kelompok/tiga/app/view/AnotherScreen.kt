@@ -8,13 +8,13 @@ import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import kelompok.tiga.app.ui.theme.GreenMint
 
 @Composable
 fun AnotherScreen(content: @Composable (ColumnScope.() -> Unit)) {
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color(0xFFA7E1BD)
+        color = GreenMint
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),

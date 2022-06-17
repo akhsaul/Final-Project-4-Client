@@ -34,7 +34,6 @@ class MainActivity : ComponentActivity(), ActivityCompat.OnRequestPermissionsRes
         checkAllPermission()
         setContent {
             KaDoInTheme {
-                //TestScreen()
                 when (state.value) {
                     is PermissionState.Wait -> {
                         AnotherScreen {

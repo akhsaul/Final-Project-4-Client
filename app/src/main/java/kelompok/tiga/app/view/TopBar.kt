@@ -137,14 +137,16 @@ fun DefaultAppBar(
         actions = {
             IconButton(
                 modifier = Modifier.padding(end = 5.dp),
-                onClick = { onSearchClicked() }) {
+                onClick = onSearchClicked
+            ) {
                 Icon(Icons.Filled.Search, contentDescription = "Search Content")
             }
             IconButton(
                 modifier = Modifier.padding(start = 5.dp),
                 onClick = {
                     context.startActivity(Intent(context, AboutActivity::class.java))
-                }) {
+                }
+            ) {
                 Icon(Icons.Filled.Info, contentDescription = "Tentang")
             }
         },

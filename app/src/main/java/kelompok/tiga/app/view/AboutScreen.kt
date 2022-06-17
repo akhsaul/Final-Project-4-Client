@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kelompok.tiga.app.ui.theme.GreenMint
 
 private const val TAG = "AboutScreen"
 
@@ -17,7 +18,7 @@ private const val TAG = "AboutScreen"
 fun AboutScreen(onBack: () -> Unit, names: List<String>, nims: List<String>) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        backgroundColor = Color(0xFFA7E1BD),
+        backgroundColor = GreenMint,
         topBar = {
             TopAppBar(
                 title = {

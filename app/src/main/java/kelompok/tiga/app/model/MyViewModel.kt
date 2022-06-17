@@ -1,31 +1,26 @@
 package kelompok.tiga.app.model
 
+import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import coil.request.ImageRequest
 import kelompok.tiga.app.data.Content
 import kelompok.tiga.app.linearSearch
 import kelompok.tiga.app.repo.MyRepository
-import kelompok.tiga.app.util.Category
-import kelompok.tiga.app.util.Resource
-import kelompok.tiga.app.util.SearchState
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.*
+import kelompok.tiga.app.util.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-
-sealed class HomeEvent {
-    object Search : HomeEvent()
-    object Restore : HomeEvent()
-    object Normal : HomeEvent()
-}
 
 class MyViewModel : ViewModel() {
     companion object {
-        val TAG: String = MyViewModel::class.java.simpleName
+        private const val TAG: String = "MyViewModel"
     }
 
     private val selectedCategory: MutableState<Category> = mutableStateOf(Category.Hewan)
@@ -35,6 +30,36 @@ class MyViewModel : ViewModel() {
     private var resultSearch: MutableStateFlow<Resource<List<Content>>> =
         MutableStateFlow(Resource.Initial())
     private val event: MutableState<HomeEvent> = mutableStateOf(HomeEvent.Normal)
+    private var imgRequest: ImageRequest.Builder? = null
+
+    fun initModel(context: Context) {
+        if (imgRequest == null) {
+            synchronized(MyViewModel::class.java) {
+                if (imgRequest == null) {
+                    imgRequest = ImageRequest.Builder(context)
+                        .setHeader("User-Agent", "Client/KaDoIn")
+                        .listener(
+                            onStart = { req ->
+                                Log.i(TAG, "Image started to load, ${req.data}")
+                            },
+                            onCancel = { req ->
+                                Log.w(TAG, "Image Request Cancelled, ${req.data}")
+                            },
+                            onError = { req, res ->
+                                Log.e(TAG, "Image failed to load, ${req.data}", res.throwable)
+                            },
+                            onSuccess = { req, _ ->
+                                Log.i(TAG, "Image successfully loaded, ${req.data}")
+                            }
+                        )
+                }
+            }
+        }
+    }
+
+    fun getImageRequest(): ImageRequest.Builder {
+        return Singleton.require(imgRequest)
+    }
 
     fun setCategory(category: Category) {
         selectedCategory.value = category
@@ -45,13 +70,13 @@ class MyViewModel : ViewModel() {
         return selectedCategory.value == category
     }
 
-    fun getMessageResponse(): String{
+    fun getMessageResponse(): String {
         return _msgResponse
     }
 
     fun requestListData() {
         Log.i(TAG, "call requestListData")
-        CoroutineScope(Dispatchers.IO).launch {
+        Singleton.coroutine.launch {
             _data.emit(Resource.Loading())
             MyRepository.getData(selectedCategory.value)
                 .onEach { state ->
@@ -61,11 +86,16 @@ class MyViewModel : ViewModel() {
                             // kotlin always complain about null values
                             val result = requireNotNull(state.data)
                             _msgResponse = result.msg
+                            Log.i(TAG, "result is ${result.data}")
                             _data.emit(Resource.Success(result.data))
                         }
                         is Resource.Error -> {
                             // if return state of success, then it should be has MESSAGE
-                            _data.emit(Resource.Error(state.message ?: "Error when try to get data"))
+                            _data.emit(
+                                Resource.Error(
+                                    state.message ?: "Error when try to get data"
+                                )
+                            )
                         }
                         else -> {
                             // should not go in here
@@ -99,7 +129,7 @@ class MyViewModel : ViewModel() {
         getData()
     }
 
-    fun getData(): StateFlow<Resource<List<Content>>>{
+    fun getData(): StateFlow<Resource<List<Content>>> {
         return when (event.value) {
             is HomeEvent.Search -> {
                 Log.i(TAG, "$event Triggered")
@@ -117,7 +147,7 @@ class MyViewModel : ViewModel() {
     }
 
     private fun searchData() {
-        CoroutineScope(Dispatchers.IO).launch {
+        Singleton.coroutine.launch {
             resultSearch.emit(Resource.Loading())
             if (_data.value is Resource.Success) {
                 val data = linearSearch(_data.value.data, _searchTextState.value)

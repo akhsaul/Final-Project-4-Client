@@ -3,12 +3,9 @@ package kelompok.tiga.app.net
 import android.content.Context
 import android.os.Environment
 import android.util.Log
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kelompok.tiga.app.util.Singleton
 import okhttp3.Cache
 import okhttp3.OkHttpClient
-import okhttp3.Request
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -19,76 +16,68 @@ object Connector {
     private const val BASE_URL = "https://backend-kel3.xyz/api/"
     private var cacheDir: File? = null
     private var downloadDir: File? = null
+    private var clientWithCache: OkHttpClient? = null
     private var client: OkHttpClient? = null
     private var retrofit: Retrofit? = null
 
-    val getApi: MyApiService by lazy {
-        requireNotNull(retrofit).create(MyApiService::class.java)
-    }
-
     fun getCacheDir(): File {
-        return requireNotNull(cacheDir)
+        return Singleton.require(cacheDir) {
+            "CacheDir is not found"
+        }
     }
 
     fun getDownloadDir(): File {
-        return requireNotNull(downloadDir)
+        return Singleton.require(downloadDir) {
+            "DownloadDir is not found"
+        }
+    }
+
+    internal fun getClient(useCache: Boolean): OkHttpClient {
+        return Singleton.require(
+            if (useCache) {
+                clientWithCache
+            } else {
+                client
+            }
+        ) {
+            "OkHttpClient is not initialized"
+        }
+    }
+
+    private fun getRetrofit(): Retrofit {
+        return Singleton.require(retrofit) {
+            "Retrofit is not initialized"
+        }
+    }
+
+    fun getAPI(): MyApiService {
+        return getRetrofit().create(MyApiService::class.java)
     }
 
     fun buildImageURL(imgName: String): String {
         return BASE_URL + "data/image/" + imgName
     }
 
-    /*
-    fun downloadSound(soundName: String): File? {
-        return runCatching {
+    internal fun init(context: Context) {
+        if (cacheDir == null && downloadDir == null
+            || client == null && clientWithCache == null
+            || retrofit == null
+        ) {
+            Log.i(TAG, "Start synchronized $TAG")
+            synchronized(Connector::class.java) {
+                if (cacheDir == null && downloadDir == null) {
+                    initPath(context)
+                }
 
-            val response = requireNotNull(client).newCall(
-                Request.Builder()
-                    .url(BASE_URL + "data/sound/" + soundName)
-                    .get()
-                    .build()
-            ).execute()
-            val fileOutput = File(getDownloadDir(), soundName)
+                if (client == null) {
+                    initClient()
+                }
 
-            response.body?.use { b ->
-                b.byteStream().buffered().use { i ->
-                    fileOutput.outputStream().buffered().use { o ->
-                        val buf = ByteArray(8 * 1024)
-                        var n: Int
-                        while (i.read(buf).also { n = it } != -1) {
-                            o.write(buf, 0, n)
-                        }
-                    }
+                if (retrofit == null) {
+                    initRetrofit()
                 }
-            }
-            fileOutput
-        }.onFailure {
-            Log.e(TAG, "Error when downloadSound", it)
-        }.getOrNull()
-    }*/
 
-    fun init(context: Context) {
-        CoroutineScope(Dispatchers.IO).launch {
-            if (cacheDir == null && downloadDir == null) {
-                synchronized(Connector) {
-                    if (cacheDir == null && downloadDir == null) {
-                        initPath(context)
-                    }
-                }
-            }
-            if (client == null) {
-                synchronized(Connector) {
-                    if (client == null) {
-                        initClient()
-                    }
-                }
-            }
-            if (retrofit == null) {
-                synchronized(Connector) {
-                    if (retrofit == null) {
-                        initRetrofit()
-                    }
-                }
+                Log.i(TAG, "Success synchronized $TAG")
             }
         }
     }
@@ -97,18 +86,21 @@ object Connector {
         retrofit = Retrofit.Builder()
             .baseUrl(BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
-            .client(requireNotNull(client))
+            .client(getClient(true))
             .build()
     }
 
     private fun initClient() {
         client = OkHttpClient.Builder()
-            .cache(Cache(getCacheDir(), 10_000_000))
             .addInterceptor(
                 HttpLoggingInterceptor()
-                    .setLevel(HttpLoggingInterceptor.Level.BODY)
+                    .setLevel(HttpLoggingInterceptor.Level.HEADERS)
             )
             .build()
+
+        clientWithCache = client?.newBuilder()
+            ?.cache(Cache(getCacheDir(), 10_000_000))
+            ?.build()
     }
 
     private fun initPath(context: Context) {
@@ -128,17 +120,17 @@ object Connector {
             }
         }
 
-        cacheDir = File(fixedDir, "cache").also {
-            it.mkdirs()
+        cacheDir = File(fixedDir, "cache").also { f ->
+            f.mkdirs()
             // make sure we have permission
-            require(it.canRead() && it.canWrite())
-            Log.e(TAG, it.absolutePath)
+            require(f.canRead() && f.canWrite())
+            Log.e(TAG, f.absolutePath)
         }
-        downloadDir = File(fixedDir, "download").also {
-            it.mkdirs()
+        downloadDir = File(fixedDir, "download").also { f ->
+            f.mkdirs()
             // make sure we have permission
-            require(it.canRead() && it.canWrite())
-            Log.e(TAG, it.absolutePath)
+            require(f.canRead() && f.canWrite())
+            Log.e(TAG, f.absolutePath)
         }
     }
 }

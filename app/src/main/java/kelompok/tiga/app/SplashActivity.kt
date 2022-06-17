@@ -19,19 +19,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import kelompok.tiga.app.net.Connector
+import kelompok.tiga.app.ui.theme.GreenMint
 import kelompok.tiga.app.ui.theme.KaDoInTheme
+import kelompok.tiga.app.util.Singleton
 
 class SplashActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Singleton.init(this)
         setContent {
             KaDoInTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = Color(0xFFA7E1BD)
+                    color = GreenMint
                 ) {
                     val scale = remember { Animatable(0f) }
 
@@ -63,7 +65,6 @@ class SplashActivity : ComponentActivity() {
                 }
             }
         }
-        Connector.init(this)
         Handler(Looper.getMainLooper()).postDelayed({
             startActivity(Intent(this, MainActivity::class.java))
         },5000)

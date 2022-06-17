@@ -8,23 +8,29 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.outlined.PauseCircle
+import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import coil.compose.AsyncImage
+import coil.compose.*
 import coil.request.ImageRequest
 import com.chibde.visualizer.LineBarVisualizer
 import kelompok.tiga.app.AboutActivity
 import kelompok.tiga.app.R
 import kelompok.tiga.app.model.DetailViewModel
+import kelompok.tiga.app.ui.theme.GreenMint
 import kelompok.tiga.app.util.MediaState
 import kelompok.tiga.app.util.PlayerState
+import kelompok.tiga.app.util.Singleton
+import kotlin.random.Random
 
 private const val TAG = "DetailScreen"
 
@@ -36,30 +42,19 @@ fun DetailScreen(viewModel: DetailViewModel, onBack: () -> Unit) {
     var playerState: PlayerState by remember {
         mutableStateOf(PlayerState.Completed)
     }
-    viewModel.setOnCompletionListener {
+    viewModel.initModel(mContext)
+    viewModel.mediaOnComplete {
         playerState = PlayerState.Completed
     }
-
-    val imgBuilder by remember {
-        derivedStateOf {
-            ImageRequest.Builder(mContext)
-                .listener(
-                    onStart = { request -> },
-                    onCancel = { request ->
-
-                    },
-                    onError = { request, result ->
-                        result.throwable
-                    }
-                )
-                .placeholder(0)
-                .build()
-        }
-    }
+    // Start to load image spinner in resource folder
+    val spinner = rememberAsyncImagePainter(
+        model = R.drawable.spinner,
+        imageLoader = Singleton.getImageLoader()
+    )
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        backgroundColor = Color(0xFFA7E1BD),
+        backgroundColor = GreenMint,
         topBar = {
             TopAppBar(
                 title = {
@@ -87,82 +82,23 @@ fun DetailScreen(viewModel: DetailViewModel, onBack: () -> Unit) {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(horizontal = 15.dp),
+                            .padding(horizontal = 30.dp),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Card(
-                            modifier = Modifier
-                                .padding(horizontal = 30.dp)
-                                .padding(bottom = 30.dp),
-                            shape = RoundedCornerShape(30.dp),
-                            elevation = 5.dp,
-                            backgroundColor = Color(0xFFF7F7F7)
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .padding(20.dp)
-                                    .fillMaxWidth(),
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                AsyncImage(
-                                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                                    model = imgBuilder.newBuilder()
-                                        .data(viewModel.getImgURL())
-                                        .build(),
-                                    contentDescription = viewModel.getData().name
-                                )
-                                Text(
-                                    text = viewModel.getData().name,
-                                    style = MaterialTheme.typography.h5,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Text(
-                                    text = "[" + viewModel.getData().title + "]",
-                                    style = MaterialTheme.typography.body1,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                //Visualizer
-                                AndroidView(
-                                    modifier = Modifier
-                                        .height(110.dp)
-                                        .padding(top = 10.dp),
-                                    factory = { context ->
-                                        LineBarVisualizer(context)
-                                    }
-                                ) {
-                                    it.setPlayer(viewModel.getAudioSession())
-                                }
+                        Content(viewModel, playerState, spinner) {
+                            playerState = if (playerState == PlayerState.PLaying) {
+                                viewModel.pauseAudio()
+                            } else {
+                                Log.i(TAG, "try to play")
+                                viewModel.playAudio()
                             }
-                        }
-
-                        IconButton(
-                            onClick = {
-                                playerState = if (playerState == PlayerState.PLaying) {
-                                    viewModel.pauseAudio()
-                                } else {
-                                    Log.i("Ikhsan", "try to play")
-                                    viewModel.playAudio()
-                                }
-                            }
-                        ) {
-                            Icon(
-                                painter = painterResource(
-                                    id = when (playerState) {
-                                        is PlayerState.PLaying -> R.drawable.ic_pause
-                                        is PlayerState.Paused -> R.drawable.ic_play
-                                        is PlayerState.Completed -> R.drawable.ic_play
-                                    }
-                                ),
-                                contentDescription = "Audio Controls",
-                                modifier = Modifier.sizeIn(minWidth = 80.dp, minHeight = 80.dp)
-                            )
                         }
                     }
                 }
                 is MediaState.Loading -> {
+                    // TODO
+                    //  use Shimmer
                     AnotherScreen {
                         CircularProgressIndicator()
                     }
@@ -173,9 +109,109 @@ fun DetailScreen(viewModel: DetailViewModel, onBack: () -> Unit) {
                     }
                 }
                 is MediaState.Initial -> {
-                    viewModel.init(mContext)
+                    viewModel.initModel(mContext)
                 }
             }
         }
     )
+}
+
+@Composable
+private fun Content(
+    viewModel: DetailViewModel,
+    playerState: PlayerState,
+    spinner: Painter,
+    onPlay: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .size(350.dp)
+            .padding(
+                start = 0.dp, end = 0.dp,
+                top = 0.dp, bottom = 30.dp
+            ),
+        shape = RoundedCornerShape(30.dp),
+        elevation = 15.dp,
+        backgroundColor = Color(0xFFF7F7F7)
+    ) {
+        Row {
+            Column(
+                modifier = Modifier
+                    .padding(
+                        start = 10.dp, end = 10.dp,
+                        top = 20.dp, bottom = 10.dp
+                    ),
+                verticalArrangement = Arrangement.Center
+            ) {
+
+                SubcomposeAsyncImage(
+                    modifier = Modifier
+                        .height(150.dp)
+                        .fillMaxWidth()
+                        .align(Alignment.CenterHorizontally),
+                    model = viewModel.getImageRequest()
+                        .data(viewModel.getImgURL())
+                        .build(),
+                    contentDescription = viewModel.getData().name,
+                    imageLoader = Singleton.getImageLoader()
+                ) {
+                    when (painter.state) {
+                        is AsyncImagePainter.State.Loading -> {
+                            SubcomposeAsyncImageContent(
+                                painter = spinner,
+                                contentDescription = "Spinner",
+                            )
+                        }
+                        is AsyncImagePainter.State.Error -> {
+                            SubcomposeAsyncImageContent(
+                                painter = painterResource(R.drawable.broken_img),
+                                contentDescription = "Image Error",
+                            )
+                        }
+                        else -> {
+                            SubcomposeAsyncImageContent()
+                        }
+                    }
+                }
+                Text(
+                    text = viewModel.getData().name,
+                    style = MaterialTheme.typography.h5,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp)
+                )
+                Text(
+                    text = "[" + viewModel.getData().title + "]",
+                    style = MaterialTheme.typography.body1,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                //Visualizer
+                AndroidView(
+                    modifier = Modifier
+                        .height(110.dp)
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    factory = { context ->
+                        LineBarVisualizer(context)
+                    }
+                ) {
+                    it.setPlayer(viewModel.getAudioSession())
+                }
+            }
+        }
+    }
+
+    IconButton(onClick = onPlay) {
+        Icon(
+            imageVector = when (playerState) {
+                is PlayerState.PLaying -> Icons.Outlined.PauseCircle
+                is PlayerState.Paused -> Icons.Outlined.PlayCircle
+                is PlayerState.Completed -> Icons.Outlined.PlayCircle
+            },
+            contentDescription = "Audio Controls",
+            modifier = Modifier.sizeIn(minWidth = 80.dp, minHeight = 80.dp)
+        )
+    }
 }

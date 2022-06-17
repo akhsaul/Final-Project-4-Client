@@ -14,8 +14,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.KaDoIn"
-        android:usesCleartextTraffic="true"
-        tools:targetApi="m">
+        android:usesCleartextTraffic="true" tools:targetApi="23">
         <activity
             android:name=".SplashActivity"
             android:noHistory="true"
@@ -36,6 +35,7 @@
         <activity
             android:name=".AboutActivity"
             android:exported="false" />
-    </application>
 
+        <uses-library android:name="org.apache.http.legacy" android:required="false"/>
+    </application>
 </manifest>

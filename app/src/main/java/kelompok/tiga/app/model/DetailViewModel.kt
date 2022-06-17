@@ -6,13 +6,13 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import coil.request.ImageRequest
 import kelompok.tiga.app.data.Content
 import kelompok.tiga.app.repo.MyRepository
 import kelompok.tiga.app.util.MediaState
 import kelompok.tiga.app.util.PlayerState
 import kelompok.tiga.app.util.Resource
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kelompok.tiga.app.util.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
@@ -22,7 +22,7 @@ import java.io.FileNotFoundException
 
 class DetailViewModel : ViewModel() {
     companion object {
-        const val TAG = "DetailViewModel"
+        private const val TAG = "DetailViewModel"
     }
 
     private var mediaPlayer: MediaPlayer? = null
@@ -34,6 +34,70 @@ class DetailViewModel : ViewModel() {
     private var _mediaState: MutableStateFlow<MediaState> =
         MutableStateFlow(MediaState.Initial)
     val mediaState: StateFlow<MediaState> = _mediaState
+    private var imgRequest: ImageRequest.Builder? = null
+
+    fun initModel(context: Context) {
+        if (imgRequest == null) {
+            synchronized(DetailViewModel::class.java) {
+                if (imgRequest == null) {
+                    imgRequest = ImageRequest.Builder(context)
+                        .setHeader("User-Agent", "Client/KaDoIn")
+                        .listener(
+                            onStart = { req ->
+                                Log.i(TAG, "Image started to load, ${req.data}")
+                            },
+                            onCancel = { req ->
+                                Log.w(TAG, "Image Request Cancelled, ${req.data}")
+                            },
+                            onError = { req, res ->
+                                Log.e(TAG, "Image failed to load, ${req.data}", res.throwable)
+                            },
+                            onSuccess = { req, _ ->
+                                Log.i(TAG, "Image successfully loaded, ${req.data}")
+                            }
+                        )
+                }
+            }
+        }
+        Singleton.coroutine.launch {
+            _mediaState.emit(MediaState.Loading)
+            Log.i(TAG, "Start initialize MediaPlayer")
+            val state = runCatching {
+                var uri: Uri? = null
+                var message = "Uri of file NOT FOUND"
+
+                val result = MyRepository.getSoundPath(getData().sound)
+                result.onEach { resource ->
+                    if (resource is Resource.Success) {
+                        uri = requireNotNull(resource.data)
+                    } else if (resource is Resource.Error) {
+                        message = resource.message!!
+                    }
+                }.collect()
+
+                if (uri != null) {
+                    mediaPlayer = MediaPlayer().apply {
+                        this.setDataSource(context, uri!!)
+                        this.setOnCompletionListener {
+                            setOnCompletionListener(it)
+                        }
+                        prepare()
+                    }
+                    MediaState.Ready
+                } else {
+                    throw FileNotFoundException(message)
+                }
+            }.onFailure {
+                Log.e(TAG, "Error when initialize MediaPlayer", it)
+            }.getOrDefault(MediaState.Error)
+
+            _mediaState.emit(state)
+        }
+    }
+
+    fun getImageRequest(): ImageRequest.Builder {
+        return Singleton.require(imgRequest)
+    }
 
     fun getData(): Content {
         return requireNotNull(data)
@@ -59,41 +123,6 @@ class DetailViewModel : ViewModel() {
 
     fun getImgURL(): String {
         return MyRepository.getImageURL(getData().image)
-    }
-
-    fun init(context: Context) {
-        CoroutineScope(Dispatchers.IO).launch {
-            _mediaState.emit(MediaState.Loading)
-            Log.e(TAG, "Start initialize MediaPlayer")
-            val state = runCatching {
-                var uri: Uri? = null
-                var message = "Uri of file NOT FOUND"
-
-                val result = MyRepository.getSoundPath(getData().sound)
-                result.onEach { resource ->
-                    if(resource is Resource.Success){
-                        uri = requireNotNull(resource.data)
-                    } else if (resource is Resource.Error){
-                        message = resource.message!!
-                    }
-                }.collect()
-
-                if (uri != null) {
-                    mediaPlayer = MediaPlayer().apply {
-                        setDataSource(context, uri!!)
-                        prepare()
-                        setOnCompletionListener(listener = setOnCompletionListener)
-                    }
-                    MediaState.Ready
-                } else {
-                    throw FileNotFoundException(message)
-                }
-            }.onFailure {
-                Log.e(TAG, "Error when initialize MediaPlayer", it)
-            }.getOrDefault(MediaState.Error)
-
-            _mediaState.emit(state)
-        }
     }
 
     fun setManager(audioManager: AudioManager) = apply {
@@ -122,7 +151,7 @@ class DetailViewModel : ViewModel() {
         return PlayerState.Paused
     }
 
-    fun setOnCompletionListener(listener: (MediaPlayer) -> Unit) {
+    fun mediaOnComplete(listener: (MediaPlayer) -> Unit) {
         setOnCompletionListener = listener
     }
 
